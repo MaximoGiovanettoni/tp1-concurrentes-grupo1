@@ -1,1 +1,1 @@
-/home/machi/AA_FIUBA/Concu/tp/target/debug/almacen_inteligente: /home/machi/AA_FIUBA/Concu/tp/src/main.rs
+/home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/target/debug/almacen_inteligente: /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/lib.rs /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/main.rs /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/mantenimiento.rs /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/recepcion.rs

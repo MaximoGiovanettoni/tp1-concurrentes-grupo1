@@ -1,0 +1,1 @@
+/home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/target/debug/libalmacen_inteligente.rlib: /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/lib.rs /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/mantenimiento.rs /home/machi/AA_FIUBA/Concu/tp1-concurrentes-grupo1/src/recepcion.rs

@@ -131,8 +131,6 @@ pub fn ejecutar() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn genera_ids_consecutivos() {
         let ids: Vec<u32> = (1..=20).collect();
