@@ -36,80 +36,18 @@ impl Cinta {
     }
 }
 
-
 pub fn ejecutar() {
     let cinta = Arc::new((
         Mutex::new(Cinta::nueva()),
         Condvar::new(),
     ));
 
-    let mut camiones = Vec::new();
-
-    for camion_id in 1..=CANTIDAD_CAMIONES {
-        let cinta_compartida = Arc::clone(&cinta);
-
-        let camion = thread::spawn(move || {
-            for numero_paquete in 0..PAQUETES_POR_CAMION {
-                let paquete_id =
-                    ((camion_id - 1) * PAQUETES_POR_CAMION + numero_paquete + 1) as u32;
-
-                let (mutex, condvar) = &*cinta_compartida;
-                let mut cinta = mutex.lock().unwrap();
-
-                while cinta.paquetes.len() == CAPACIDAD_CINTA {
-                    cinta = condvar.wait(cinta).unwrap();
-                }
-
-                cinta.paquetes.push_back(Paquete::nuevo(paquete_id));
-
-                println!(
-                    "Camión {}: dejó paquete P_{}",
-                    camion_id, paquete_id
-                );
-
-                condvar.notify_all();
-                drop(cinta);
-
-                thread::sleep(Duration::from_millis(30));
-            }
-        });
-
-        camiones.push(camion);
-    }
-
-    let mut robots = Vec::new();
-
-    for robot_id in 1..=CANTIDAD_ROBOTS {
-        let cinta_compartida = Arc::clone(&cinta);
-
-        let robot = thread::spawn(move || loop {
-            let paquete = {
-                let (mutex, condvar) = &*cinta_compartida;
-                let mut cinta = mutex.lock().unwrap();
-
-                while cinta.paquetes.is_empty() && !cinta.finalizada {
-                    cinta = condvar.wait(cinta).unwrap();
-                }
-
-                if cinta.paquetes.is_empty() && cinta.finalizada {
-                    break;
-                }
-
-                let paquete = cinta.paquetes.pop_front().unwrap();
-                condvar.notify_all();
-                paquete
-            };
-
-            println!(
-                "Robot {}: tomó paquete P_{}",
-                robot_id, paquete.id
-            );
-
-            thread::sleep(Duration::from_millis(50));
-        });
-
-        robots.push(robot);
-    }
+    let camiones: Vec<_> = (1..=CANTIDAD_CAMIONES)
+        .map(|id| iniciar_camion(id, Arc::clone(&cinta)))
+        .collect();
+    let robots: Vec<_> = (1..=CANTIDAD_ROBOTS)
+        .map(|id| iniciar_robot(id, Arc::clone(&cinta)))
+        .collect();
 
     for camion in camiones {
         camion.join().unwrap();
@@ -128,6 +66,46 @@ pub fn ejecutar() {
 
     println!("Recepción finalizada.");
 }
+
+fn iniciar_camion(id: usize, cinta: Arc<(Mutex<Cinta>, Condvar)>) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        for numero in 0..PAQUETES_POR_CAMION {
+            let paquete_id = ((id - 1) * PAQUETES_POR_CAMION + numero + 1) as u32;
+            let (mutex, condvar) = &*cinta;
+            let mut cinta = mutex.lock().unwrap();
+            while cinta.paquetes.len() == CAPACIDAD_CINTA {
+                cinta = condvar.wait(cinta).unwrap();
+            }
+            cinta.paquetes.push_back(Paquete::nuevo(paquete_id));
+            println!("Camión {}: dejó paquete P_{}", id, paquete_id);
+            condvar.notify_all();
+            drop(cinta);
+            thread::sleep(Duration::from_millis(30));
+        }
+    })
+}
+
+fn iniciar_robot(id: usize, cinta: Arc<(Mutex<Cinta>, Condvar)>) -> thread::JoinHandle<()> {
+    thread::spawn(move || loop {
+        let paquete = {
+            let (mutex, condvar) = &*cinta;
+            let mut cinta = mutex.lock().unwrap();
+            while cinta.paquetes.is_empty() && !cinta.finalizada {
+                cinta = condvar.wait(cinta).unwrap();
+            }
+            if cinta.paquetes.is_empty() && cinta.finalizada {
+                break;
+            }
+            let paquete = cinta.paquetes.pop_front().unwrap();
+            condvar.notify_all();
+            paquete
+        };
+        println!("Robot {}: tomó paquete P_{}", id, paquete.id);
+        thread::sleep(Duration::from_millis(50));
+    })
+}
+
+
 
 #[cfg(test)]
 mod tests {
