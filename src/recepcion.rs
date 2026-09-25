@@ -27,6 +27,10 @@ struct Cinta {
     finalizada: bool,
 }
 
+fn robot_debe_terminar(cinta: &Cinta) -> bool {
+    cinta.paquetes.is_empty() && cinta.finalizada
+}
+
 impl Cinta {
     fn nueva() -> Self {
         Self {
@@ -93,7 +97,7 @@ fn iniciar_robot(id: usize, cinta: Arc<(Mutex<Cinta>, Condvar)>) -> thread::Join
             while cinta.paquetes.is_empty() && !cinta.finalizada {
                 cinta = condvar.wait(cinta).unwrap();
             }
-            if cinta.paquetes.is_empty() && cinta.finalizada {
+            if robot_debe_terminar(&cinta) {
                 break;
             }
             let paquete = cinta.paquetes.pop_front().unwrap();
@@ -109,11 +113,42 @@ fn iniciar_robot(id: usize, cinta: Arc<(Mutex<Cinta>, Condvar)>) -> thread::Join
 
 #[cfg(test)]
 mod tests {
+    use super::{Cinta, Paquete};
+
     #[test]
-    fn genera_ids_consecutivos() {
-        let ids: Vec<u32> = (1..=20).collect();
-        assert_eq!(ids.len(), 20);
-        assert_eq!(ids.first(), Some(&1));
-        assert_eq!(ids.last(), Some(&20));
+    fn la_cinta_comienza_vacia_y_no_finalizada() {
+        let cinta = Cinta::nueva();
+
+        assert!(cinta.paquetes.is_empty());
+        assert!(!cinta.finalizada);
     }
+
+    #[test]
+    fn la_cinta_conserva_el_orden_fifo() {
+        let mut cinta = Cinta::nueva();
+        cinta.paquetes.push_back(Paquete::nuevo(1));
+        cinta.paquetes.push_back(Paquete::nuevo(2));
+
+        assert_eq!(cinta.paquetes.pop_front().unwrap().id, 1);
+        assert_eq!(cinta.paquetes.pop_front().unwrap().id, 2);
+    }
+
+    #[test]
+    fn el_robot_no_termina_si_quedan_paquetes() {
+        let mut cinta = Cinta::nueva();
+        cinta.finalizada = true;
+        cinta.paquetes.push_back(Paquete::nuevo(1));
+
+        assert!(!super::robot_debe_terminar(&cinta));
+    }
+
+    #[test]
+    fn el_robot_termina_solo_con_cinta_vacia_y_finalizada() {
+        let mut cinta = Cinta::nueva();
+
+        assert!(!super::robot_debe_terminar(&cinta));
+        cinta.finalizada = true;
+        assert!(super::robot_debe_terminar(&cinta));
+    }
+
 }
